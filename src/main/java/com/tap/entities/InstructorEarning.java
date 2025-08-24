@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -25,6 +26,7 @@ public class InstructorEarning {
 
     @ManyToOne
     @JoinColumn(name = "instructor_id", nullable = false)
+    @ToString.Exclude
     private Instructor instructor;
 
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
@@ -34,6 +36,7 @@ public class InstructorEarning {
 
     @ManyToOne
     @JoinColumn(name = "student_id")
+    @ToString.Exclude
     private Student student;
 
     @Column(name = "payment_method", nullable = false, length = 50)
@@ -42,6 +45,7 @@ public class InstructorEarning {
 
     @ManyToOne
     @JoinColumn(name = "bank_detail_id")
+    @ToString.Exclude
     private InstructorBankDetail bankDetail;
 
     @Column(name = "notes", length = 1000)

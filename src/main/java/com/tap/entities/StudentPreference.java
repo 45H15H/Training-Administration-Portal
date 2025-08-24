@@ -3,6 +3,7 @@ package com.tap.entities;
 import com.tap.entities.Student;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.ToString;
 
 
 import java.time.LocalDateTime;
@@ -24,6 +25,7 @@ public class StudentPreference {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)
+    @ToString.Exclude
     private Student student;
 
     @Column(name = "required_skills", columnDefinition = "text[]")

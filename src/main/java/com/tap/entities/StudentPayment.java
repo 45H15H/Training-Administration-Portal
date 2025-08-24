@@ -3,6 +3,7 @@ package com.tap.entities;
 import com.tap.entities.Student;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.ToString;
 
 
 import java.math.BigDecimal;
@@ -24,15 +25,18 @@ public class StudentPayment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)
+    @ToString.Exclude
     private Student student;
 
     // Course for which the payment is made
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = true)
+    @ToString.Exclude
     private Course course;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bank_detail_id") // Nullable
+    @ToString.Exclude
     private StudentBankDetails studentBankDetails;
 
     @Column(name = "payment_status", length = 20)
