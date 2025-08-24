@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 class InstructorBankDetailsServiceTest {
 
-
+    //Here mock object is created for actual class . for this we used @mock to mock the object
     @Mock
     private InstructorRepository instructorRepository;
 
@@ -36,10 +36,10 @@ class InstructorBankDetailsServiceTest {
     @InjectMocks
     private InstructorBankDetailsService service;
 
-
+    //we used void setup() beacuse it is called automatically before each test .so we don't have to repeat this setup every time.
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        MockitoAnnotations.openMocks(this); // activates the annotations before each test cases
     }
 
     @Test
