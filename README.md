@@ -49,6 +49,7 @@ Spring Security configuration:
 
 ## High-Level Domain Model
 
+
 Entities (simplified):
 
 * User (base) → Student, Instructor (JOINED inheritance)
@@ -159,6 +160,7 @@ POST /api/students/register
  # Student books slot
  POST /api/bookings/me
  { "instructorId":"...", "timeSlotId":"...", "courseId":"..." }
+
 ```
 
 ---
@@ -180,4 +182,40 @@ POST /api/students/register
 * Global exception handler + error contract
 
 
+---
 
+## Project Structure
+
+```text
+Training-Administration-Portal/
+├── pom.xml
+├── mvnw / mvnw.cmd
+├── README.md
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/tap/
+│   │   │       ├── TrainingAdminstratorPortalApplication.java
+│   │   │       ├── controllers/
+│   │   │       │   └── All controllers
+│   │   │       ├── dto/
+│   │   │       │   └── All DTOs
+│   │   │       ├── entities/
+│   │   │       │   └── All entities
+│   │   │       ├── mappers/
+│   │   │       │   └── All mappers
+│   │   │       ├── repositories/
+│   │   │       │   └── All repositories
+│   │   │       └── services/
+│   │   │           └── All services
+│   │   └── resources/
+│   │       └── application.properties
+│   └── test/
+│       └── java/
+│           └── com/tap/
+│               └── controllers/
+│                   └── All controllers
+│               └── exceptions/
+│                   └── All exceptions
+│               └── services/
+│                   └── All services
