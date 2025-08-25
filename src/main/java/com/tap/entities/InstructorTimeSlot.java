@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 
@@ -21,6 +22,7 @@ public class InstructorTimeSlot {
 
     @ManyToOne
     @JoinColumn(name="instructor_id",nullable = false)
+    @ToString.Exclude
     private Instructor instructor;
 
     @Column(name="start_time",nullable = false)

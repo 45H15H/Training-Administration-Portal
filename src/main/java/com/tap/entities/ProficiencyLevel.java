@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.util.List;
 
@@ -25,6 +26,7 @@ public class ProficiencyLevel {
     // one to many relationship with instructor skills
     // because one level can be taken by many skills
     @OneToMany(mappedBy = "level", fetch = FetchType.LAZY)
+    @ToString.Exclude
     private List<InstructorSkill> instructorSkills;
 
     public enum LevelName {

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 
@@ -20,6 +21,7 @@ public class InstructorResume {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="instructor_id")
+    @ToString.Exclude
     private Instructor instructor;
 
 

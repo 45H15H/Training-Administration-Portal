@@ -5,6 +5,7 @@ import jakarta.persistence.criteria.Fetch;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Table(name = "instructorSkills", schema = "tap_project")
@@ -23,6 +24,7 @@ public class InstructorSkill {
     // many to one relationship with instructors, becasue many skills can be taking by one instructor
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "instructor_id", nullable = false)
+    @ToString.Exclude
     private Instructor instructor;
 
 

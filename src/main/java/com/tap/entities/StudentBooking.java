@@ -5,6 +5,7 @@ import com.tap.entities.InstructorTimeSlot;
 import com.tap.entities.Student;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 
@@ -23,14 +24,17 @@ public class StudentBooking {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)
+    @ToString.Exclude
     private Student student;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "instructor_id", nullable = false)
+    @ToString.Exclude
     private Instructor instructor;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "slot_id", nullable = false)
+    @ToString.Exclude
     private InstructorTimeSlot slot;
 
     @Column(name = "booked_at",updatable = false)

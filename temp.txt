@@ -1,0 +1,277 @@
+course dto
+
+package com.tap.dto;
+
+import com.tap.entities.InstructorSkill;
+import com.tap.entities.ProficiencyLevel;
+import lombok.Data;
+
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Data
+public class CourseDto {
+    private UUID courseId;
+    private UUID instructorId;
+    private String title;
+    private String description;
+    private InstructorSkill skill;
+    private BigDecimal price;
+    private Duration duration;
+    private ProficiencyLevel level;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private Boolean IsPublished;
+
+}
+
+ ------------
+
+ courser repo
+
+ package com.tap.repositories;
+
+ import com.tap.entities.Course;
+ import jdk.dynalink.linker.LinkerServices;
+ import org.springframework.data.jpa.repository.JpaRepository;
+
+ import java.util.List;
+ import java.util.UUID;
+
+ public interface CourseRepository extends JpaRepository<Course, UUID> {
+     List<Course> findInstructor_InstructorId(UUID instructorId);
+     List<Course> findByIsPublished(Boolean isPublished);
+     List<Course> findByTitleContainingIgnoreCase(String keyword);
+ }
+
+
+  --------
+
+  courser mapper
+
+  public CourseDto tocourseDto(Course course){
+      if (course==null)
+          return null;
+      CourseDto dto = new CourseDto();
+      dto.setCourseId(course.getCourseId());
+      dto.setInstructorId(course.getInstructor().getUserId());
+      dto.setTitle(course.getTitle());
+      dto.setDescription(course.getDescription());
+      dto.setPrice(course.getPrice());
+      dto.setDuration(course.getDuration());
+      dto.setCreatedAt(course.getCreatedAt());
+      dto.setUpdatedAt(course.getUpdatedAt());
+      dto.setIsPublished(course.getIsPublished());
+
+      InstructorSkill skill = course.getSkill();
+      if (skill!= null){
+          InstructorSkillDto skillDto = new InstructorSkillDto();
+          skillDto.setInstructorSkillId(skill.getInstructorSkillId());
+          skillDto.setSkillName(skill.getSkillName());
+          dto.setSkill(skillDto);
+      }
+
+      ProficiencyLevel level = course.getLevel();
+      if (level!=null){
+          ProficiencyLevelDto levelDto = new ProficiencyLevelDto();
+          levelDto.setLevelId(level.getLevelId());
+          levelDto.setLevelName(level.getLevelName());
+          dto.setLevel(levelDto);
+
+      }
+      return dto;
+  }
+
+  ------
+
+ instructor coruser service
+
+ @Transactional
+ public CourseDto createCourse(CourseDto dto){
+     Instructor instructor = instructorRepository.findById(dto.getInstructorId())
+             .orElseThrow(()->new ResourceNotFoundException("Instructor not found"));
+     InstructorSkill skill = instructorSkillRepository.findById(dto.getSkill().getInstructorSkillId())
+             .orElseThrow(()->new ResourceNotFoundException("Skill not found"));
+     ProficiencyLevel level = levelRepository.findById(dto.getLevel().getLevelId())
+             .orElseThrow(()->new ResourceNotFoundException("Proficiency not found"));
+
+     Course course = new Course();
+     course.setInstructor(instructor);
+     course.setTitle(dto.getTitle());
+     course.setSkill(skill);
+     course.setPrice(dto.getPrice());
+     course.setDuration(dto.getDuration());
+     course.setLevel(level);
+     course.setIsPublished(dto.getIsPublished());
+
+     Course saved = courseRepository.save(course);
+     return userMapper.tocourseDto(saved);
+ }
+
+ @Transactional
+ public CourseDto updateCourse(UUID courseId, CourseDto dto){
+     Course course = courseRepository.findById(courseId)
+             .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
+
+     course.setTitle(dto.getTitle());
+     course.setPrice(dto.getPrice());
+     course.setDuration(dto.getDuration());
+     course.setIsPublished(dto.getIsPublished());
+
+     if(dto.getSkill()!=null){
+         InstructorSkill skill = instructorSkillRepository.findById(dto.getSkill().getInstructorSkillId())
+                 .orElseThrow(() -> new ResourceNotFoundException("Skill not found"));
+         course.setSkill(skill);
+     }
+     if (dto.getLevel() != null) {
+         ProficiencyLevel level = levelRepository.findById(dto.getLevel().getLevelId())
+                 .orElseThrow(() -> new ResourceNotFoundException("Proficiency level not found"));
+         course.setLevel(level);
+     }
+
+
+     Course updated = courseRepository.save(course);
+     return userMapper.tocourseDto(updated);
+ }
+
+
+ @Transactional
+ public CourseDto getCourseById(UUID courseId) {
+     Course course = courseRepository.findById(courseId)
+             .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
+     return userMapper.tocourseDto(course);
+ }
+
+
+ @Transactional
+ public void deleteCourse(UUID courseId) {
+     Course course = courseRepository.findById(courseId)
+             .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
+     courseRepository.delete(course);
+ }
+   >>>>
+
+private final InstructorRepository instructorRepository;
+private final InstructorSkillRepository instructorSkillRepository;
+private final CourseRepository courseRepository;
+private final UserMapper userMapper;
+private final InstructorResumeRepository resumeRepository;
+private final Path fileStorageLocation;
+private final InstructorSkillRepository skillRepository;
+
+public InstructorService(InstructorRepository instructorRepository, InstructorSkillRepository instructorSkillRepository, CourseRepository courseRepository, UserMapper userMapper,
+                         InstructorResumeRepository resumeRepository, @Value("${file.upload-dir}") String uploadDir, InstructorSkillRepository skillRepository) {
+    this.instructorRepository = instructorRepository;
+    this.instructorSkillRepository = instructorSkillRepository;
+    this.courseRepository = courseRepository;
+    this.userMapper = userMapper;
+    this.resumeRepository = resumeRepository;
+    this.fileStorageLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
+    this.skillRepository = skillRepository;
+    try {
+        Files.createDirectories(this.fileStorageLocation);
+    } catch (Exception ex) {
+        throw new RuntimeException("Could not create the directory where the uploaded files will be stored.", ex);
+    }
+}
+
+
+=-----------------
+
+instructor controller layer
+
+@PostMapping
+public ResponseEntity<?> createCourse(@RequestBody CourseDto courseDto) {
+    try {
+        CourseDto created = instructorService.createCourse(courseDto);
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
+    } catch (Exception e) {
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+}
+
+
+@PutMapping("/{courseId}")
+public ResponseEntity<?> updateCourse(@PathVariable UUID courseId, @RequestBody CourseDto courseDto) {
+    try {
+        CourseDto updated = instructorService.updateCourse(courseId, courseDto);
+        return ResponseEntity.ok(updated);
+    } catch (Exception e) {
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+}
+
+
+@GetMapping("/{courseId}")
+public ResponseEntity<CourseDto> getCourseById(@PathVariable UUID courseId) {
+    return ResponseEntity.ok(instructorService.getCourseById(courseId));
+}
+
+
+@DeleteMapping("/{courseId}")
+public ResponseEntity<?> deleteCourse(@PathVariable UUID courseId) {
+    try {
+        instructorService.deleteCourse(courseId);
+        return new ResponseEntity<>("Course deleted successfully", HttpStatus.OK);
+    } catch (Exception e) {
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+    }
+}
+
+
+ ---- new transactional somewhere
+ @Transactional
+ public CourseDto createCourse(UUID instructorId,CourseDto dto){
+     Instructor instructor = instructorRepository.findById(instructorId)
+             .orElseThrow(()->new ResourceNotFoundException("Instructor not found"));
+     InstructorSkill skill = instructorSkillRepository.findById(dto.getSkill().getInstructorSkillId())
+             .orElseThrow(()->new ResourceNotFoundException("Skill not found"));
+     ProficiencyLevel level = levelRepository.findById(dto.getLevel().getLevelId())
+             .orElseThrow(()->new ResourceNotFoundException("Proficiency not found"));
+
+     Course course = new Course();
+     course.setInstructor(instructor);
+     course.setTitle(dto.getTitle());
+     course.setSkill(skill);
+     course.setPrice(dto.getPrice());
+     course.setDuration(dto.getDuration());
+     course.setLevel(level);
+     course.setIsPublished(dto.getIsPublished());
+
+     Course saved = courseRepository.save(course);
+     return userMapper.tocourseDto(saved);
+ }
+
+ --- new post mapping somere
+ @PostMapping("/{instructorId}/courses")
+ public ResponseEntity<?> createCourse(@PathVariable UUID instructorId,@RequestBody CourseDto courseDto) {
+     try {
+         CourseDto created = instructorService.createCourse(instructorId,courseDto);
+         return new ResponseEntity<>(created, HttpStatus.CREATED);
+     } catch (Exception e) {
+         return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+     }
+ }
+
+ --- again one transactional somehere
+ @Transactional(readOnly = true)
+ public List<CourseDto> getAllCourses() {
+     List<Course> courses = courseRepository.findAll();
+     return courses.stream()
+             .map(userMapper::tocourseDto)
+             .collect(Collectors.toList());
+ }
+
+
+  --- controller
+  @GetMapping("/courses")
+  public ResponseEntity<List<CourseDto>> getAllCourses() {
+      List<CourseDto> courses = instructorService.getAllCourses();
+      return ResponseEntity.ok(courses);
+  }
+
+
+
+

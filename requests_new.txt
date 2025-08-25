@@ -1,0 +1,517 @@
+2# Training Administration Portal - End-to-End API Flow
+
+This document walks through a realistic lifecycle: platform setup, instructor onboarding, course & slot publication, student onboarding & preferences, enrollment (direct & auto via booking), booking, payment (with earning creation), progress updates, and retrieval endpoints.
+
+Conventions:
+- UUID placeholders: {instructorId}, {studentId}, {courseId}
+- Integer IDs: {slotId}, {enrollmentId}, {paymentId}, {earningId}, {bankDetailId}, {levelId}
+- Timestamps ISO-8601 (UTC) unless noted.
+- Omitted unchanged audit fields for brevity.
+
+==================================================
+1. PROVISION BASE DATA (Optional)
+==================================================
+1.1 Create Proficiency Levels
+POST /api/proficiency-levels
+{
+  "levelName": "Beginner"
+}
+
+POST /api/proficiency-levels
+{
+  "levelName": "Intermediate"
+}
+
+POST /api/proficiency-levels
+{
+  "levelName": "Advanced"
+}
+
+GET /api/proficiency-levels -> 200
+[
+    {
+        "levelId": 1,
+        "levelName": "beginner"
+    },
+    {
+        "levelId": 2,
+        "levelName": "intermediate"
+    },
+    {
+        "levelId": 3,
+        "levelName": "advanced"
+    }
+]
+
+==================================================
+2. INSTRUCTOR ONBOARDING
+==================================================
+2.1 Register Instructor
+POST /api/instructors/register
+{
+    "username": "new.instructor",
+    "password": "passwosad123",
+    "email": "instructor@example.com",
+    "firstName": "Jane",
+    "lastName": "Doe"
+}
+
+-> 201 { "userId": "{instructorId}", "fullName": "Alice Anderson", ... }
+
+2.2 (Optional) Update Instructor Profile
+All fields are optional, can update any combination of them
+PUT /api/instructors/me
+authorization, same username and password
+{
+    "username": "new.instructor",
+    "password": "passwosad123",
+    "email": "instructor@example.com",
+    "firstName": "Jane",
+    "lastName": "Doe"
+}
+-> 200 updated dto
+
+** same email or username conflict are handled as follows:
+- If the email is already in use by another instructor, return 409 Conflict
+- If the username is already taken, return 409 Conflict
+
+** Requests for instructor details:
+GET /api/instructors/me -- same username and password
+GET /api/instructors -- change for admin - not there, instead it's api/admin/users to get all users.
+
+2.3 Add Qualification (create or replace)
+POST /api/instructors/me/qualification
+{
+  "bio": "Experienced software engineer with a passion for teaching and mentoring students in backend development.",
+  "highestQualification": "M.Tech in Computer Science",
+  "relevantExperience": 5
+}
+-> 200 qualification dto
+
+PUT /api/instructors/me/qualification
+{
+  "bio": "Experienced software engineer with a passion for teaching and mentoring students in backend development.",
+  "highestQualification": "M.Tech in Computer Science",
+  "relevantExperience": 5
+}
+
+** when instructor not there so it prints instructor not found
+
+** GET /api/instructors/me/qualification to get one qualification
+
+2.4 Add Skills
+POST /api/instructors/me/skills
+{
+  "levelId": 3,
+  "skillName": "Data Structures and Algorithms"
+}
+
+DELETE /api/instructors/me/skills/{skillId}
+
+** when skill not found so it prints skill not found
+
+** GET /api/instructors/me/skills -> list
+
+2.5 Add Bank Detail (for earnings payouts)
+POST /api/instructors/me/bank-details
+{
+  "accountHolderName": "Dr. Neha Sharma",
+  "bankName": "HDFC Bank",
+  "accountNumber": "987654321012",
+  "ifscCode": "HDFC0000456",
+  "accountType": "Savings",
+  "branchName": "Gomti Nagar Branch"
+}
+-> 200 bank detail dto (id = {bankDetailId})
+
+PUT /api/instructors/me/bank-details/{bankDetailId}
+{
+  "accountHolderName": "Dr. Neha Sharma",
+  "bankName": "HDFC Bank",
+  "accountNumber": "987654321012",
+  "ifscCode": "HDFC0000456",
+  "accountType": "Current",
+  "branchName": "Gomti Nagar Branch"
+}
+
+DELETE /api/instructors/me/bank-details/{bankDetailId}
+no response on successful deletion
+
+GET /api/instructors/me/bank-details
+list the bank of an instructor
+
+2.6 (Optional) Upload Resume (multipart/form-data)
+POST /api/instructors/me/resume  (file=resume.pdf)
+-> 201 resume dto (filename, size)
+
+PUT /api/instructors/me/resume
+(file=resume.pdf)
+
+** for post and put use multipart form with key `file` and upload the file in value
+
+GET /api/instructors/me/resume
+-> 200 resume dto
+
+2.7 Publish Time Slots
+POST /api/instructors/me/slots
+{
+  "startTime": "2025-08-20T10:00:00",
+  "endTime": "2025-08-20T11:00:00",
+  "isBooked": false
+}
+-> 201 {"slotId":1,"isBooked":false,...}
+
+PUT /api/instructors/me/slots/{slotId}
+{
+  "startTime": "2025-08-20T10:00:00",
+  "endTime": "2025-08-20T11:00:00",
+  "isBooked": true
+}
+slot can be updated only if he owns that slot (403 Forbidden)
+
+
+GET /api/instructors/me/slots -> [slot1, slot2]
+
+==================================================
+3. COURSE PUBLICATION
+==================================================
+
+----------------------------------
+new endpoints:
+
+/api/courses/instructors/me POST - working
+/api/courses/instructors/me GET - working
+/api/courses/instructors/me/{courseUUID} PUT - working
+/api/courses/instructors/me/{courseUUID} DELETE - working
+
+not working
+/api/courses/instructors/me/{id} (GET /api/courses/{id} also returns their own even if unpublished)
+
+
+/api/courses/students/me GET - working, unpublished is not retrieved
+/api/courses/students/me/{courseUUID} - not working, is it required? no ig
+----------------------------------
+
+
+3.1 Create Course
+POST /api/courses/instructors/me
+{
+  "title": "DSA course",
+  "description": "This course covers the fundamentals of data structures and algorithms.",
+  "skillId": 1,
+  "price": 499.99,
+  "duration": "PT10H30M",
+  "levelId": 3,
+  "isPublished": true
+}
+** instructor should exist
+-> 201 {"courseId":"{courseId}","timeSlots":[ ... from instructor slots ...], ...}
+
+3.2 Update Course (optional)
+PUT /api/courses/instructors/me/{coruseUUID}
+{
+  "title": "DSA course",
+  "description": "This course covers the fundamentals of data structures and algorithms.",
+  "skillId": 1,
+  "price": 499.99,
+  "duration": "PT10H30M",
+  "levelId": 3,
+  "isPublished": true
+}
+course should be there to update
+
+3.3 List Courses (with embedded time slots)
+GET /api/courses/instructors/me -> 200
+[
+  {
+    "courseId": "{courseId}",
+    "title": "Java Foundations & Advanced",
+    "price": 249.00,
+    "instructorId": "{instructorId}",
+    "timeSlots": [
+      {"slotId":1,"startTime":"2025-08-25T09:00:00Z","endTime":"2025-08-25T10:00:00Z","booked":false},
+      {"slotId":2,"startTime":"2025-08-25T10:30:00Z","endTime":"2025-08-25T11:30:00Z","booked":false}
+    ]
+  }
+]
+
+3.4 Get Single Course -- not working, neither for students nor for instructors
+GET /api/courses/instructors/me/{courseId}
+
+** only slots which were created by the owner of the course will be visible for that course
+
+==================================================
+4. STUDENT ONBOARDING
+==================================================
+4.1 Register Student
+POST /api/students/register
+{
+    "username": "new.student",
+    "password": "password123",
+    "email": "student@example.com",
+    "firstName": "John",
+    "lastName": "Smith",
+    "phoneNumber": "1234567890",
+    "age": 20
+}
+-> 201 {"userId":"{studentId}","fullName":"Bob Brown",...}
+
+4.2 Update Student (optional)
+PUT /api/students/me
+{
+    "username": "old.student",
+    "password": "password123",
+    "email": "student_old@example.com",
+    "firstName": "John",
+    "lastName": "Smith",
+    "phoneNumber": "1234567890",
+    "age": 20
+}
+
+4.3 Set Preferences
+POST /api/students/me/preferences
+{
+    "requiredSkills": ["python", "Cpp"],
+    "preferredTimeSlots": ["monring", "evening"],
+    "preferredStartTime": "2025-08-20T09:00:00",
+    "preferredEndTime": "2025-08-20T17:00:00"
+}
+-> 200 preference dto
+
+** here post used for putting also. no extra PUT method
+
+GET /api/students/me/preferences
+
+4.4 (Optional) Student Bank Details
+POST /api/students/me/bankDetails
+{
+  "accountHolderName": "Ashish Singh",
+  "bankName": "State Bank of India",
+  "accountNumber": "123456789012",
+  "ifscCode": "SBIN0001234",
+  "accountType": "Savings",
+  "branchName": "Sadar Branch"
+}
+
+** for bank details also same post is working as post for updating the bank details
+** GET is there for getting bank details
+
+==================================================
+5. ENROLLMENT PATHS
+==================================================
+
+Option B: Auto Enrollment via Booking (Recommended)
+
+==================================================
+6. BOOKING A TIME SLOT (Auto-Enroll if needed)
+==================================================
+6.1 Create Booking (auto creates enrollment if absent)
+POST /api/bookings/me --> only for students
+{
+  "instructorId": "{instructorId}",
+  "courseId": "{courseId}",
+  "timeSlotId": 1
+}
+-> 201 {"bookingId":123,"studentId":"{studentId}","instructorId":"{instructorId}","courseId":"{courseId}","timeSlotId":1,"status":"CONFIRMED"}
+
+** GET is not there on /api/bookings
+** PUT is not there on /api/bookings
+
+(Behind the scenes: slot 1 marked booked; enrollment created if not existing.)
+
+6.2 Attempt Booking Already Booked Slot (error example)
+POST /api/bookings/me
+{ same as above }
+-> 400 "Time slot already booked"
+
+Attempt booking unpublished will return 400, bad request
+
+6. Verify Enrollment
+GET /api/enrollments/me
+
+9. Update Progress - wiht student auth
+PUT /api/enrollments/{enrollmentId}/progress
+{
+  "progress": 25.0
+}
+
+
+==================================================
+7. PAYMENT (Requires Existing Enrollment)
+==================================================
+Precondition: Student must be enrolled (direct or via booking). The service checks existence: existsByStudent_UserIdAndCourse_CourseId.
+
+7.1 Create Payment
+Only post
+POST /api/students/me/payments
+{
+  "courseId": "",
+  "studentBankDetails": 300,
+  "amount": 149.99,
+  "paymentMethod": "CREDIT_CARD",
+  "paymentStatus": "COMPLETED",
+  "notes": "Initial course purchase"
+}
+-> 200 {"paymentId": {paymentId}, "studentId":"{studentId}", "courseId":"{courseId}", "amount":249.00 }
+
+Side Effect: InstructorEarning auto-created using first bank detail for instructor.
+
+7.2 Get Payment By Id (Global)  (Note: design may change)
+GET /api/students/me/payments/{paymentId}
+-> 200 payment dto
+
+7.3 Invalid Payment When Not Enrolled (error)
+POST /api/students/me/payments
+{ "amount": 100, "currency":"USD", "courseId":"{someOtherCourseId}", "method":"CARD" }
+-> 400 "Student not enrolled in course"
+
+==================================================
+8. INSTRUCTOR EARNINGS (Manual + Auto)
+==================================================
+8.1 List Earnings (includes auto-generated from payment)
+GET /api/instructors/me/earnings
+-> 200 [ {"earningId":{earningId},"amount":249.00,"courseId":"{courseId}","studentId":"{studentId}"} ]
+
+8.2 (Optional) Create Manual Earning (not required)
+POST /api/instructors/me/earnings
+{
+  "amount": 50.00,
+  "description": "Bonus",
+  "courseId": "{courseId}",
+  "studentId": "{studentId}"
+}
+
+8.3 Update Earning (bulk semantics by instructor) (not required)(not paying attention)
+PUT /api/instructors/{instructorId}/earnings
+{
+  "earningId": {earningId},
+  "amount": 260.00,
+  "description": "Adjusted after refund",
+  "courseId": "{courseId}",
+  "studentId": "{studentId}"
+}
+
+8.4 Delete Earning By Payload (not Recommended)(not paying attention)
+DELETE /api/instructors/{instructorId}/earnings
+{
+  "earningId": {earningId},
+  "courseId": "{courseId}",
+  "studentId": "{studentId}"
+}
+-> 204
+
+8.5 Delete Specific Earning By Id
+DELETE /api/instructors/{instructorId}/earnings/{earningId} -> 204
+
+==================================================
+9. BANK DETAILS & MAINTENANCE (Instructor)
+==================================================
+9.1 List Instructor Bank Details
+GET /api/instructors/me/bank-details
+-> 200 [ {"bankDetailId":{bankDetailId},"bankName":"BankOne"} ]
+
+9.2 Update Bank Detail -- already done above
+
+9.3 Delete Bank Detail -- already done above
+
+==================================================
+10. CLEANUP / OPTIONAL OPERATIONS
+==================================================
+10.1 Delete Course -- working above
+
+10.2 Delete All Instructor Slots (e.g., maintenance)
+DELETE /api/instructors/{instructorId}/slots -> 200 "All slots deleted for instructor ..."
+
+10.3 Delete Qualification
+DELETE /api/instructors/{instructorId}/qualification -> 204
+
+10.4 Delete All Skills
+DELETE /api/instructors/{instructorId}/skills -> 204
+
+==================================================
+11. USER (BASE) ENDPOINTS (If Needed Outside Specific Roles)
+==================================================
+11.1 Create Base User (generic)
+POST /api/users
+{
+  "firstName": "Generic",
+  "lastName": "User",
+  "email": "generic@portal.io",
+  "phone": "+15551234"
+}
+
+---------------
+only admin
+---------------
+username: admin
+password: admin
+---------------
+
+
+11.2 Get User
+GET /api/admin/users
+
+Create a plain base user. JSON body: 
+{
+	username,
+	password,
+	email
+}
+POST /api/admin/users
+
+
+11.4 Update authorization -- done with admnin
+PATCH /api/admin/users/{userId}/authorization
+{
+  "authorization": true
+}
+
+{
+  "authorization": false
+}
+
+DELETE a user
+/api/admin/users/{userId}
+
+==================================================
+12. ERROR & EDGE CASE EXAMPLES
+==================================================
+A. Booking Slot Already Booked -> 400
+B. Payment Without Enrollment -> 400
+C. Fetch Nonexistent Enrollment -> 404 (implementation dependent)
+D. Delete Nonexistent Bank Detail -> 404
+
+==================================================
+13. RECOMMENDED FLOW SUMMARY
+==================================================
+1. Create proficiency levels (optional taxonomy)
+2. Register instructor; add qualification, skills, bank detail, slots
+3. Create course (linked to instructor) -> students see slots inside course payload
+4. Register student; set preferences
+5. Student books a slot (auto-enroll) OR direct enroll then (optional) book later
+6. Student pays (enrollment prerequisite) -> earning auto-created
+7. Instructor views earnings
+8. Student progresses; update progress
+9. Administrative / lifecycle maintenance (update course, slots, bank details)
+
+==================================================
+14. SAMPLE COMPACT CURL (Pseudo, replace placeholders)
+==================================================
+# Create Instructor
+curl -X POST http://localhost:8080/api/instructors -H "Content-Type: application/json" -d '{"firstName":"Alice","lastName":"Anderson","email":"alice@teach.io"}'
+# Create Course
+curl -X POST http://localhost:8080/api/courses -H "Content-Type: application/json" -d '{"title":"Java Foundations","description":"OOP","price":199.0,"instructorId":"{instructorId}"}'
+# Register Student
+curl -X POST http://localhost:8080/api/students -H "Content-Type: application/json" -d '{"firstName":"Bob","lastName":"Brown","email":"bob@student.io"}'
+# Booking
+curl -X POST http://localhost:8080/api/bookings -H "Content-Type: application/json" -d '{"studentId":"{studentId}","instructorId":"{instructorId}","courseId":"{courseId}","slotId":1}'
+# Payment
+curl -X POST http://localhost:8080/api/students/{studentId}/payments -H "Content-Type: application/json" -d '{"amount":249.0,"currency":"USD","courseId":"{courseId}","method":"CARD"}'
+
+==================================================
+15. NOTES
+==================================================
+- Auto-enrollment occurs only on booking if not already enrolled.
+- Payment enforces enrollment; ensure booking or direct enroll first.
+- Earnings auto-generation relies on instructor having at least one bank detail (first used).
+- Consider adding pagination, authentication, and standardized error schema in future.

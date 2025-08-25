@@ -13,6 +13,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "users", schema = "tap_project")
+@Inheritance(strategy = InheritanceType.JOINED)
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -38,8 +39,4 @@ public class User {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-
-    @ManyToOne(fetch = FetchType.LAZY) // LAZY fetch is for performance
-    @JoinColumn(name = "role_id", nullable = false)
-    private Role role;
 }

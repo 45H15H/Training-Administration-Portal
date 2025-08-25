@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -31,6 +32,7 @@ public class Course {
     @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="instructor_id",nullable = false)
     @NotNull(message="Instructor is required")
+    @ToString.Exclude
     private Instructor instructor;
 
     @Column(name="title",nullable = false)
@@ -42,6 +44,7 @@ public class Course {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "skill_id")
+    @ToString.Exclude
     private InstructorSkill skill;
 
     @Column(name="price",precision = 10,scale =2)
@@ -53,6 +56,7 @@ public class Course {
 
     @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="level_id")
+    @ToString.Exclude
     private ProficiencyLevel level;
 
     @Column(name="created_at",nullable = false,updatable = false)

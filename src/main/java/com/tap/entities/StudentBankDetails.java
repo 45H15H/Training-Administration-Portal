@@ -3,6 +3,7 @@ package com.tap.entities;
 import com.tap.entities.Student;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 
@@ -21,6 +22,7 @@ public class StudentBankDetails {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)
+    @ToString.Exclude
     private Student student;
 
     @Column(name = "account_holder_name", nullable = false, length = 100)

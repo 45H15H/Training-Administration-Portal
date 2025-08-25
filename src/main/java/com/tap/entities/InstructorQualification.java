@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Table(name = "instructorQualifications", schema = "tap_project")
@@ -23,12 +24,13 @@ public class InstructorQualification {
     @Column(name = "highest_qualification")
     private String highestQualification;
 
-    @Column(name = "relevent_exp")
-    private Integer releventExperience;
+    @Column(name = "relevant_exp")
+    private Integer relevantExperience;
 
     // one-to-one relationship with instructor, an instructor can have only one bio and all
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "instructor_id")
+    @ToString.Exclude
     private Instructor instructor;
 
 }
