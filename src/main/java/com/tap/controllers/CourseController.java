@@ -123,6 +123,9 @@ public class CourseController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not owner of course");
         }
         courseService.deleteCourse(id);
-        return ResponseEntity.noContent().build();
+    return ResponseEntity.ok(java.util.Map.of(
+        "message", "Course deleted successfully",
+        "courseId", id.toString()
+    ));
     }
 }
